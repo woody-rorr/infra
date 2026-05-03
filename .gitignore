@@ -4,3 +4,6 @@ terraform.tfstate.backup
 *.tfvars
 bastion_key
 bastion_key.pub
+.env
+.env.*
+!.env.example
