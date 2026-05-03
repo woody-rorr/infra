@@ -41,3 +41,8 @@ output "ecs_cluster" {
   description = "ECS 클러스터명"
   value       = module.ecs.cluster_name
 }
+
+output "github_actions_role_arn" {
+  description = "GitHub Actions IAM Role ARN — GitHub Secrets에 등록"
+  value       = module.github_oidc.role_arn
+}

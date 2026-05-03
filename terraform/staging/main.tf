@@ -66,6 +66,12 @@ module "bastion" {
   rds_sg_id  = module.rds.sg_id
 }
 
+module "github_oidc" {
+  source      = "../modules/github-oidc"
+  project     = var.project
+  github_repo = "woody-rorr/infra"
+}
+
 module "ecs" {
   source             = "../modules/ecs"
   project            = var.project
