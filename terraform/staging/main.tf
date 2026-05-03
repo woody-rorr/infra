@@ -67,9 +67,9 @@ module "bastion" {
 }
 
 module "github_oidc" {
-  source      = "../modules/github-oidc"
-  project     = var.project
-  github_repo = "woody-rorr/infra"
+  source       = "../modules/github-oidc"
+  project      = var.project
+  github_repos = ["woody-rorr/infra", "woody-rorr/v1"]
 }
 
 module "ecs" {

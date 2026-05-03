@@ -1,6 +1,7 @@
 variable "project" {}
-variable "github_repo" {
-  description = "GitHub 레포 (org/repo 형식)"
+variable "github_repos" {
+  description = "GitHub 레포 목록 (org/repo 형식)"
+  type        = list(string)
 }
 
 # GitHub OIDC Provider
@@ -26,7 +27,7 @@ resource "aws_iam_role" "github_actions" {
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
+          "token.actions.githubusercontent.com:sub" = [for repo in var.github_repos : "repo:${repo}:*"]
         }
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
