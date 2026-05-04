@@ -19,6 +19,7 @@ output "ecr_urls" {
     db_schema      = module.ecr.db_schema_url
     business_logic = module.ecr.business_logic_url
     api_endpoints  = module.ecr.api_endpoints_url
+    api_server     = module.ecr.api_server_url
   }
 }
 

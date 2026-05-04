@@ -7,6 +7,13 @@ resource "aws_security_group" "alb" {
   vpc_id = var.vpc_id
 
   ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     from_port   = 5001
     to_port     = 5003
     protocol    = "tcp"
@@ -114,8 +121,37 @@ resource "aws_lb_listener" "api_endpoints" {
   }
 }
 
+# ── api-server (80) ──────────────────────────────────────────
+resource "aws_lb_target_group" "api_server" {
+  name        = "${var.project}-api-server"
+  port        = 3000
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 30
+  }
+}
+
+resource "aws_lb_listener" "api_server" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api_server.arn
+  }
+}
+
 output "dns_name"              { value = aws_lb.main.dns_name }
+output "zone_id"               { value = aws_lb.main.zone_id }
 output "alb_sg_id"             { value = aws_security_group.alb.id }
 output "db_schema_tg_arn"      { value = aws_lb_target_group.db_schema.arn }
 output "business_logic_tg_arn" { value = aws_lb_target_group.business_logic.arn }
 output "api_endpoints_tg_arn"  { value = aws_lb_target_group.api_endpoints.arn }
+output "api_server_tg_arn"     { value = aws_lb_target_group.api_server.arn }

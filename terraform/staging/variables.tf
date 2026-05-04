@@ -16,6 +16,18 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "jwt_access_secret" {
+  description = "JWT Access Token 서명 키"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_refresh_secret" {
+  description = "JWT Refresh Token 서명 키"
+  type        = string
+  sensitive   = true
+}
+
 variable "tags" {
   description = "모든 리소스에 적용되는 공통 태그"
   type        = map(string)

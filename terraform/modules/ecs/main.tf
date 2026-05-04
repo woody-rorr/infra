@@ -8,12 +8,22 @@ variable "aws_region"         { type = string }
 variable "ecr_db_schema"      { type = string }
 variable "ecr_business_logic" { type = string }
 variable "ecr_api_endpoints"  { type = string }
+variable "ecr_api_server"        { type = string }
+variable "jwt_access_secret" {
+  type      = string
+  sensitive = true
+}
+variable "jwt_refresh_secret" {
+  type      = string
+  sensitive = true
+}
 
 variable "rds_url"            { type = string }
 
 variable "db_schema_tg_arn"      { type = string }
 variable "business_logic_tg_arn" { type = string }
 variable "api_endpoints_tg_arn"  { type = string }
+variable "api_server_tg_arn"     { type = string }
 variable "alb_sg_id"             { type = string }
 
 # ── CloudWatch 로그 ───────────────────────────────────────────
@@ -52,6 +62,16 @@ resource "aws_security_group_rule" "mcp_ingress" {
   source_security_group_id = var.alb_sg_id
   security_group_id        = aws_security_group.ecs_tasks.id
   description              = "MCP ports from ALB only"
+}
+
+resource "aws_security_group_rule" "api_server_ingress" {
+  type                     = "ingress"
+  from_port                = 3000
+  to_port                  = 3000
+  protocol                 = "tcp"
+  source_security_group_id = var.alb_sg_id
+  security_group_id        = aws_security_group.ecs_tasks.id
+  description              = "api-server port from ALB only"
 }
 
 # ── Task Definition (서비스 공통 패턴) ─────────────────────
@@ -265,6 +285,80 @@ resource "aws_appautoscaling_policy" "api_endpoints_cpu" {
   resource_id        = aws_appautoscaling_target.api_endpoints.resource_id
   scalable_dimension = aws_appautoscaling_target.api_endpoints.scalable_dimension
   service_namespace  = aws_appautoscaling_target.api_endpoints.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+  }
+}
+
+# ── api-server Task Definition ───────────────────────────────
+resource "aws_ecs_task_definition" "api_server" {
+  family                   = "${var.project}-api-server"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "api-server"
+      image     = "${var.ecr_api_server}:latest"
+      essential = true
+      portMappings     = [{ containerPort = 3000 }]
+      logConfiguration = local.log_config
+      environment = [
+        { name = "DATABASE_URL",       value = var.rds_url },
+        { name = "JWT_ACCESS_SECRET",  value = var.jwt_access_secret },
+        { name = "JWT_REFRESH_SECRET", value = var.jwt_refresh_secret }
+      ]
+    }
+  ])
+}
+
+resource "aws_ecs_service" "api_server" {
+  name                   = "${var.project}-api-server"
+  cluster                = aws_ecs_cluster.main.id
+  task_definition        = aws_ecs_task_definition.api_server.arn
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  enable_execute_command = true
+
+  network_configuration {
+    subnets          = var.subnet_ids
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = var.api_server_tg_arn
+    container_name   = "api-server"
+    container_port   = 3000
+  }
+
+  lifecycle { ignore_changes = [desired_count] }
+}
+
+resource "aws_appautoscaling_target" "api_server" {
+  max_capacity       = 5
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api_server.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "api_server_cpu" {
+  name               = "${var.project}-api-server-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api_server.resource_id
+  scalable_dimension = aws_appautoscaling_target.api_server.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api_server.service_namespace
 
   target_tracking_scaling_policy_configuration {
     target_value       = 70.0

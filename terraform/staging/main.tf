@@ -84,11 +84,15 @@ module "ecs" {
   ecr_db_schema      = module.ecr.db_schema_url
   ecr_business_logic = module.ecr.business_logic_url
   ecr_api_endpoints  = module.ecr.api_endpoints_url
+  ecr_api_server     = module.ecr.api_server_url
 
   rds_url          = "postgresql://mcpadmin:${var.db_password}@${module.rds.endpoint}/${module.rds.db_name}"
 
   db_schema_tg_arn      = module.alb.db_schema_tg_arn
   business_logic_tg_arn = module.alb.business_logic_tg_arn
   api_endpoints_tg_arn  = module.alb.api_endpoints_tg_arn
+  api_server_tg_arn     = module.alb.api_server_tg_arn
+  jwt_access_secret     = var.jwt_access_secret
+  jwt_refresh_secret    = var.jwt_refresh_secret
   alb_sg_id             = module.alb.alb_sg_id
 }
