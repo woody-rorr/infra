@@ -66,5 +66,6 @@ resource "aws_instance" "bastion" {
   tags = { Name = "${var.project}-bastion" }
 }
 
-output "public_ip"  { value = aws_instance.bastion.public_ip }
+output "public_ip"     { value = aws_instance.bastion.public_ip }
+output "bastion_sg_id" { value = aws_security_group.bastion.id }
 output "public_dns" { value = aws_instance.bastion.public_dns }

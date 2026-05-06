@@ -1,7 +1,8 @@
 variable "project"    { type = string }
 variable "vpc_id"     { type = string }
 variable "subnet_ids" { type = list(string) }
-variable "ecs_sg_id"  { type = string }
+variable "ecs_sg_id"     { type = string }
+variable "bastion_sg_id" { type = string }
 variable "db_password" {
   type      = string
   sensitive = true
@@ -15,7 +16,7 @@ resource "aws_security_group" "rds" {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [var.ecs_sg_id]
+    security_groups = [var.ecs_sg_id, var.bastion_sg_id]
   }
 
   egress {

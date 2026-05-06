@@ -47,8 +47,9 @@ module "rds" {
   project     = var.project
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  ecs_sg_id   = module.ecs.ecs_sg_id
-  db_password = var.db_password
+  ecs_sg_id      = module.ecs.ecs_sg_id
+  bastion_sg_id  = module.bastion.bastion_sg_id
+  db_password    = var.db_password
 }
 
 module "alb" {
